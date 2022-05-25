@@ -1,14 +1,21 @@
-import time
 import random
 from PIL import Image, ImageDraw
 import os
-from math import floor
 
 prevScore = 999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999
 score = 10001
 gen = 0
+iteration = 1
 
 base = Image.open(input(">>> ") + ".png")
+
+Acolours = []
+for y in range(base.height):
+    for x in range(base.width):
+        BaseCol = base.getpixel((x, y))
+
+        if str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]) in Acolours: continue
+        Acolours.append(str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]))
 
 for file in os.listdir("image_temp"): os.remove("image_temp/" + file)
 
@@ -18,7 +25,7 @@ img.save("image_temp/canvas.png")
 while score > 10000:
     objects = []
     gen += 1
-    for i in range(50):
+    for i in range(iteration):
         object = {}
         object["id"] = i
 
@@ -26,9 +33,10 @@ while score > 10000:
         y = random.randint(0, base.height)
         scaleX = random.randint(-500, 500)
         scaleY = random.randint(-500, 500)
-        r = random.randint(0, 255)
-        g = random.randint(0, 255)
-        b = random.randint(0, 255)
+        rgb = random.randint(0, len(Acolours)-1)
+        r = int(Acolours[rgb].split(".")[0])
+        g = int(Acolours[rgb].split(".")[1])
+        b = int(Acolours[rgb].split(".")[2])
         a = random.randint(0, 255)
 
         img = Image.open("image_temp/canvas.png")
@@ -60,7 +68,7 @@ while score > 10000:
         object["a"] = a
 
         objects.append(object)
-        print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen), end="\r")
+        print("["+"#"*(round((i+1)/iteration*50))+" "*(50-(round((i+1)/iteration*50)))+"] "+str(i+1)+"/" + str(iteration) + " // GEN "+str(gen), end="\r")
 
     sortObj = []
     for y in range(len(objects)):
@@ -71,7 +79,7 @@ while score > 10000:
         sortObj.append(objects.pop(minimum))
     objects = sortObj
 
-    print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // BEST SCORE: "+str(objects[0]['score']), end="\r")
+    print("["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // BEST SCORE: "+str(objects[0]['score']), end="\r")
 
     comp = Image.open("image_temp/" + str(objects[0]['id']) + ".png")
 
@@ -94,4 +102,5 @@ while score > 10000:
         comp = Image.open("image_temp/canvas.png")
         prevScore = score
     else:
-        print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // FAILED GEN: COULD NOT IMPROVE UPON PEVIOUS GEN")
+        print("["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // FAILED GEN: COULD NOT IMPROVE UPON PEVIOUS GEN")
+        iteration += 1
