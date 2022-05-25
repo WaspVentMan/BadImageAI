@@ -8,9 +8,7 @@ prevScore = 999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*
 score = 10001
 gen = 0
 
-shapes = os.listdir("shapes")
-
-base = Image.open("base.png")
+base = Image.open(input(">>> ") + ".png")
 
 for file in os.listdir("image_temp"): os.remove("image_temp/" + file)
 
@@ -38,14 +36,14 @@ while score > 10000:
         draw.rectangle([(x, y), (x+scaleX, y+scaleY)], fill=(r, g, b, a))
         img.save("image_temp/" + str(i) + ".png")
 
+        img = img.resize((round(img.width/4), round(img.height/4)))
+
         score = 0
-        s = -1
-        for y in range(floor(round(img.height))):
-            s += 1
-            if s == 4: s = 0
-            for x in range(floor(round(img.width/4))):
-                BaseCol = base.getpixel(((x*4)+s, y))
-                CompCol = img.getpixel(((x*4)+s, y))
+        basetemp = base.resize((round(base.width/4), round(base.height/4)))
+        for yy in range(img.height):
+            for xx in range(img.width):
+                BaseCol = basetemp.getpixel((xx, yy))
+                CompCol = img.getpixel((xx, yy))
 
                 for col in range(3):
                     if BaseCol[col] - CompCol[col] < 0: score += -(BaseCol[col] - CompCol[col])
@@ -73,26 +71,27 @@ while score > 10000:
         sortObj.append(objects.pop(minimum))
     objects = sortObj
 
-    if objects[0]['score'] > prevScore:
-        print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // FAILED GEN: COULD NOT IMPROVE UPON PEVIOUS GEN")
-        continue
-
-    print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // BEST SCORE: "+str(objects[0]['score']))
+    print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // BEST SCORE: "+str(objects[0]['score']), end="\r")
 
     comp = Image.open("image_temp/" + str(objects[0]['id']) + ".png")
-    comp.save("image_temp/canvas.png")
-    comp = Image.open("image_temp/canvas.png")
 
     score = 0
     s = -1
-    for y in range(floor(round(img.height))):
+    for y in range(comp.height):
         s += 1
         if s == 4: s = 0
-        for x in range(floor(round(img.width/4))):
-            BaseCol = base.getpixel(((x*4)+s, y))
-            CompCol = img.getpixel(((x*4)+s, y))
+        for x in range(comp.width):
+            BaseCol = base.getpixel((x, y))
+            CompCol = comp.getpixel((x, y))
 
             for col in range(3):
                 if BaseCol[col] - CompCol[col] < 0: score += -(BaseCol[col] - CompCol[col])
                 else: score += BaseCol[col] - CompCol[col]
-    prevScore = score
+
+    if score < prevScore:
+        print("")
+        comp.save("image_temp/canvas.png")
+        comp = Image.open("image_temp/canvas.png")
+        prevScore = score
+    else:
+        print("["+"#"*(i+1)+" "*(50-(i+1))+"] "+str(i+1)+"/50 // GEN "+str(gen)+" // FAILED GEN: COULD NOT IMPROVE UPON PEVIOUS GEN")
