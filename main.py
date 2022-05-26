@@ -1,13 +1,25 @@
-import random
-from PIL import Image, ImageDraw
-import os
+import random, os, math, time
+from PIL import Image
 
-prevScore = 999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999*999
-score = 10001
-gen = 0
-iteration = 1
+prevScore = math.inf
+score = math.inf
+gen = 1
+iteration = 50
+itChoice = ""
+while itChoice not in ['y', 'n']: itChoice = input("Do you want to change the minimum iterations per generation? Default is {} (y/n)\n>>> ".format(str(iteration))).lower()
+if itChoice == "y":
+    while True:
+        try: iteration = int(input("Enter a number (reccomended minimum is 50)\n>>> ")); iteration = iteration if iteration > 0 else 50; break
+        except: pass
 
-base = Image.open(input(">>> ") + ".png")
+file = input("Choose an image to replicate.\n>>> ")
+base = Image.open(file + ".png")
+
+try: os.mkdir("temp")
+except: pass
+try: os.mkdir("progress")
+except: pass
+for file in os.listdir("progress"): os.remove("progress/" + file)
 
 Acolours = []
 for y in range(base.height):
@@ -17,32 +29,33 @@ for y in range(base.height):
         if str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]) in Acolours: continue
         Acolours.append(str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]))
 
-for file in os.listdir("image_temp"): os.remove("image_temp/" + file)
+for file in os.listdir("temp"): os.remove("temp/" + file)
 
 img = Image.new("RGB", (base.width, base.height), "white")
-img.save("image_temp/canvas.png")
+img.save("temp/canvas.png")
 
-while score > 10000:
+while score > base.width*base.height:
+    startTime = time.time
     objects = []
-    gen += 1
     for i in range(iteration):
         object = {}
         object["id"] = i
 
-        x = random.randint(0, base.width)
-        y = random.randint(0, base.height)
-        scaleX = random.randint(-500, 500)
-        scaleY = random.randint(-500, 500)
+        scaleX = random.randint(1, 500)
+        scaleY = random.randint(1, 500)
+        x = random.randint(0-scaleX, base.width)
+        y = random.randint(0-scaleY, base.height)
         rgb = random.randint(0, len(Acolours)-1)
         r = int(Acolours[rgb].split(".")[0])
         g = int(Acolours[rgb].split(".")[1])
         b = int(Acolours[rgb].split(".")[2])
-        a = random.randint(0, 255)
+        a = random.randint(128-gen if gen > 127 else 0, 255)
+        rot = random.randint(0, 360)
 
-        img = Image.open("image_temp/canvas.png")
-        draw=ImageDraw.Draw(img, "RGBA")
-        draw.rectangle([(x, y), (x+scaleX, y+scaleY)], fill=(r, g, b, a))
-        img.save("image_temp/" + str(i) + ".png")
+        img = Image.open("temp/canvas.png")
+        rect = Image.new("RGBA", (scaleX, scaleY), (r, g, b, a)).rotate(rot, expand=True)
+        Image.Image.paste(img, rect, (x, y), rect)
+        img.save("temp/" + str(i) + ".png")
 
         img = img.resize((round(img.width/4), round(img.height/4)))
 
@@ -58,17 +71,10 @@ while score > 10000:
                     else: score += BaseCol[col] - CompCol[col]
 
         object["score"] = score
-        object["x"] = x
-        object["y"] = y
-        object["scaleX"] = scaleX
-        object["scaleY"] = scaleY
-        object["r"] = r
-        object["g"] = g
-        object["b"] = b
-        object["a"] = a
 
         objects.append(object)
-        print("["+"#"*(round((i+1)/iteration*50))+" "*(50-(round((i+1)/iteration*50)))+"] "+str(i+1)+"/" + str(iteration) + " // GEN "+str(gen), end="\r")
+        bar = "[{}{}] {}/{} // GEN {} // Time Taken (so far): {}s".format("#"*(round((i+1)/iteration*50))," "*(50-(round((i+1)/iteration*50))), str(i+1), str(iteration), str(gen), str(round(time.time()-startTime, 2)))
+        print(bar + " "*(int(os.get_terminal_size()[0])-len(bar)), end="\r")
 
     sortObj = []
     for y in range(len(objects)):
@@ -79,9 +85,7 @@ while score > 10000:
         sortObj.append(objects.pop(minimum))
     objects = sortObj
 
-    print("["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // BEST SCORE: "+str(objects[0]['score']), end="\r")
-
-    comp = Image.open("image_temp/" + str(objects[0]['id']) + ".png")
+    comp = Image.open("temp/" + str(objects[0]['id']) + ".png")
 
     score = 0
     s = -1
@@ -97,10 +101,11 @@ while score > 10000:
                 else: score += BaseCol[col] - CompCol[col]
 
     if score < prevScore:
-        print("")
-        comp.save("image_temp/canvas.png")
-        comp = Image.open("image_temp/canvas.png")
+        bar = "["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // SCORE: "+str(objects[0]['score']) + " // Time Taken: " + str(round(time.time()-startTime, 2)) + "s"
+        print("{}{}".format(bar, " "*(int(os.get_terminal_size()[0])-len(bar))))
+        comp.save("temp/canvas.png")
+        comp.save("progress/{}.png".format(str(gen)))
+        gen += 1
         prevScore = score
-    else:
-        print("["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // FAILED GEN: COULD NOT IMPROVE UPON PEVIOUS GEN")
-        iteration += 1
+for file in os.listdir("temp"): os.remove("temp/" + file)
+comp.save("{}.AI.{}.png".format(file, str(gen)))
