@@ -34,13 +34,15 @@ for file in os.listdir("temp"): os.remove("temp/" + file)
 img = Image.new("RGB", (base.width, base.height), "white")
 img.save("temp/canvas.png")
 
-async def test(i, base, Acolours, gen):
+async def test(i, base, Acolours, gen, startTime):
     object = {}
     object["id"] = i
     score = 0
 
-    scaleX = random.randint(1, 500)
-    scaleY = random.randint(1, 500)
+    maxScale = base.width if base.width > base.height else base.height
+    maxScale = maxScale-(round(gen/5)) if maxScale-(round(gen/5)) > 25 else 25
+    scaleX = random.randint(1, maxScale)
+    scaleY = random.randint(1, maxScale)
     x = random.randint(0-scaleX, base.width)
     y = random.randint(0-scaleY, base.height)
     rgb = random.randint(0, len(Acolours)-1)
@@ -70,17 +72,18 @@ async def test(i, base, Acolours, gen):
 
     object["score"] = score
 
-    bar = "[{}{}] {}/{} // GEN {}".format("#"*(round((i+1)/iteration*50))," "*(50-(round((i+1)/iteration*50))), str(i+1), str(iteration), str(gen))
+    bar = "[{}{}] {}/{} // GEN {} // TIME: {}s".format("#"*(round((i+1)/iteration*50))," "*(50-(round((i+1)/iteration*50))), str(i+1), str(iteration), str(gen), str(round(time.time()-startTime, 2)))
     print(bar + " "*(int(os.get_terminal_size()[0])-len(bar)), end="\r")
 
     return object
 
 async def main(base, iteration, Acolours, score, prevScore, gen):
+    startTime = time.time()
     while score > base.width*base.height*10:
         objects = []
 
         for i in range(iteration):
-            objects.append(await test(i, base, Acolours, gen))
+            objects.append(await test(i, base, Acolours, gen, startTime))
 
         sortObj = []
         for y in range(len(objects)):
@@ -107,12 +110,13 @@ async def main(base, iteration, Acolours, score, prevScore, gen):
                     else: score += BaseCol[col] - CompCol[col]
 
         if score < prevScore:
-            bar = "["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // SCORE: "+str(score)
+            bar = "["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s"
             print("{}{}".format(bar, " "*(int(os.get_terminal_size()[0])-len(bar))))
             comp.save("temp/canvas.png")
             comp.save("progress/{}.png".format(str(gen)))
             gen += 1
             prevScore = score
+            startTime = time.time()
     for file in os.listdir("temp"): os.remove("temp/" + file)
     comp.save("{}.AI.{}.png".format(file, str(gen)))
 
