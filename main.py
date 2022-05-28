@@ -1,6 +1,8 @@
 import random, os, math, time, asyncio
 from PIL import Image
 
+blocks = ("▏", "▎", "▍", "▌", "▋", "▊", "▉", "█")
+
 prevScore = math.inf
 score = math.inf
 gen = 1
@@ -31,12 +33,11 @@ for y in range(base.height):
 
 for file in os.listdir("temp"): os.remove("temp/" + file)
 
-img = Image.new("RGB", (base.width, base.height), "white")
-img.save("temp/canvas.png")
+img = Image.new("RGB", (base.width, base.height), "white") .save("temp/canvas.png")
 
 async def test(i, base, Acolours, gen, startTime):
-    object = {}
-    object["id"] = i
+    global blocks
+    object = {"id": i}
     score = 0
 
     maxScale = base.width if base.width > base.height else base.height
@@ -70,9 +71,19 @@ async def test(i, base, Acolours, gen, startTime):
                 if BaseCol[col] - CompCol[col] < 0: score += -(BaseCol[col] - CompCol[col])
                 else: score += BaseCol[col] - CompCol[col]
 
+    object["rgb"] = rgb
     object["score"] = score
 
-    bar = "[{}{}] {}/{} // GEN {} // TIME: {}s".format("#"*(round((i+1)/iteration*50))," "*(50-(round((i+1)/iteration*50))), str(i+1), str(iteration), str(gen), str(round(time.time()-startTime, 2)))
+    rgb = Acolours[rgb].split(".")[0] + ";" + Acolours[rgb].split(".")[1] + ";" + Acolours[rgb].split(".")[2]
+    bar = "[" + "\033[38;2;" + rgb + "m"
+    bi=round(i*(400/iteration))
+    for b in range(50):
+        b=b*8
+        if b > bi:
+            if b-8 > bi: bar += " "
+            else: bar += blocks[bi-(b-8)]
+        else: bar += blocks[7]
+    bar += "\033[0m] {}/{} // GEN {} // TIME: {}s".format(str(i+1), str(iteration), str(gen), str(round(time.time()-startTime, 2)))
     print(bar + " "*(int(os.get_terminal_size()[0])-len(bar)), end="\r")
 
     return object
@@ -82,8 +93,7 @@ async def main(base, iteration, Acolours, score, prevScore, gen):
     while score > base.width*base.height*10:
         objects = []
 
-        for i in range(iteration):
-            objects.append(await test(i, base, Acolours, gen, startTime))
+        for i in range(iteration): objects.append(await test(i, base, Acolours, gen, startTime))
 
         sortObj = []
         for y in range(len(objects)):
@@ -97,10 +107,7 @@ async def main(base, iteration, Acolours, score, prevScore, gen):
         comp = Image.open("temp/" + str(objects[0]['id']) + ".png")
 
         score = 0
-        s = -1
         for y in range(comp.height):
-            s += 1
-            if s == 4: s = 0
             for x in range(comp.width):
                 BaseCol = base.getpixel((x, y))
                 CompCol = comp.getpixel((x, y))
@@ -110,7 +117,8 @@ async def main(base, iteration, Acolours, score, prevScore, gen):
                     else: score += BaseCol[col] - CompCol[col]
 
         if score < prevScore:
-            bar = "["+"#"*50+"] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s"
+            rgb = Acolours[objects[0]['rgb']].split(".")[0] + ";" + Acolours[objects[0]['rgb']].split(".")[1] + ";" + Acolours[objects[0]['rgb']].split(".")[2]
+            bar = "["+"\033[38;2;" + rgb + "m" + "█"*50+"\033[0m] "+str(iteration)+"/" + str(iteration) + " // GEN "+str(gen)+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s"
             print("{}{}".format(bar, " "*(int(os.get_terminal_size()[0])-len(bar))))
             comp.save("temp/canvas.png")
             comp.save("progress/{}.png".format(str(gen)))
