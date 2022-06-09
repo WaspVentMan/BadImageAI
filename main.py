@@ -103,7 +103,8 @@ async def main(base, iteration, gen, full, file, dimensions):
                 except: pass
             prevScore = math.inf
             score = math.inf
-            while score > base.width*base.height*accuracy:
+            goal = base.width*base.height*accuracy
+            while score > goal:
                 objects = []
 
                 for i in range(iteration):
@@ -130,8 +131,9 @@ async def main(base, iteration, gen, full, file, dimensions):
                             if BaseCol[col] - CompCol[col] < 0: score += -(BaseCol[col] - CompCol[col])
                             else: score += BaseCol[col] - CompCol[col]
 
+                print("GEN "+str(hex(gen))[2:]+" // SCORE: "+"-"*len(str(prevScore))+" // TIME: "+str(round(time.time()-startTime, 2))+"s   ", end="\r")
                 if score < prevScore:
-                    print("GEN "+str(hex(gen))[2:]+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s")
+                    print("GEN "+str(hex(gen))[2:]+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s   ")
                     position = (math.floor(dimensions[0])*cx, math.floor(dimensions[1])*cy)
                     full.paste(comp, position)
                     while True:
@@ -155,8 +157,7 @@ async def main(base, iteration, gen, full, file, dimensions):
     for file1 in os.listdir("chunks"): os.remove("chunks/" + file1)
 
 startTimeOverall = time.time()
-loop = asyncio.get_event_loop()
-loop.run_until_complete(main(base, iteration, gen, full, file, dimensions))
+asyncio.get_event_loop().run_until_complete(main(base, iteration, gen, full, file, dimensions))
 
 ms = int(round(time.time()-startTimeOverall, 2)*100)
 seconds = 0; minutes = 0; hours = 0; days = 0
@@ -164,4 +165,4 @@ while ms >= 100: ms -= 100; seconds += 1
 while seconds >= 60: seconds -= 60; minutes += 1
 while minutes >= 60: minutes -= 60; hours += 1
 while hours >= 24: hours -= 24; days += 1
-print("{}d {}h {}m {}s {}ms".format(days, hours, minutes, seconds, ms))
+input("Finished in {}d {}h {}m {}s {}ms\nPress enter to exit.\n".format(days, hours, minutes, seconds, ms))
