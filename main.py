@@ -1,54 +1,98 @@
-import random, os, math, time, asyncio
+import random, os, math, time, asyncio, json
 from PIL import Image
 
-blocks = ("▏", "▎", "▍", "▌", "▋", "▊", "▉", "█")
-
-gen = 1
-iteration = 50
-accuracy = 25
-itChoice = ""
-while itChoice not in ['y', 'n']: itChoice = input("Do you want to change the minimum iterations per generation? Default is {} (y/n)\n>>> ".format(str(iteration))).lower()
-if itChoice == "y":
+def menu():
     while True:
-        try: iteration = int(input("Enter a number (reccomended minimum is 50)\n>>> ")); iteration = iteration if iteration > 0 else 50; break
-        except: pass
+        os.system("CLS")
+        settings = json.load(open("settings.json"))
+        select = input("MENU\n\n0 \\ Exit\n1 \\ Start\n2 \\ Settings\n>>> ")
+        if select == "0": return
+        elif select == "1": imageAI(settings)
+        elif select == "2": settin(settings)
+        else: input("no lol\n")
 
-itChoice = ""
-while itChoice not in ['y', 'n']: itChoice = input("Do you want to change the accuracy to succeed? Default is {} (y/n)\n>>> ".format(str(accuracy))).lower()
-if itChoice == "y":
+
+def settin(settings):
     while True:
-        try: accuracy = int(input("Enter a number (reccomended min is 10, reccomended max is 50, lower is more accurate, higher is less accurate)\n>>> ")); accuracy = accuracy if accuracy > 0 else 25; break
-        except: pass
+        json.dump(settings, open("settings.json", "w"))
+        os.system("CLS")
+        select = input("SETTINGS\n\nSettings are auto-saved as they are changed!\n0 \\ Back\n1 \\ Set Accuracy\n2 \\ Set Chunk Size\n3 \\ Set Gen Style\n4 \\ \"Cheats\"\n>>> ")
+        if select == "0": return
+        elif select == "1":
+            while True:
+                try: settings["accuracy"] = int(input("Enter a number to set the accuracy to.\nReccomended is 25 for a decent image, reccomended min is 10, reccomended max is 50\nLower is more accurate, higher is less accurate\n>>> ")); settings["accuracy"] = settings["accuracy"] if settings["accuracy"] > 0 else 25; break
+                except: pass
+        elif select == "2":
+            while True:
+                try:
+                    settings["chunkSize"] = int(input("Enter a number to set the chunk size to.\nReccomended is 15 for a decent image, reccomended min is 5, there is no max, go wild!\n>>> "))
+                    settings["chunkSize"] = settings["chunkSize"] if settings["chunkSize"] > 0 else 25
+                    settings["cheatyShit"]['autoSmooth'] = settings["cheatyShit"]['autoSmooth'] if settings["cheatyShit"]['autoSmooth'] > settings["chunkSize"] else settings["chunkSize"]; break
+                except: pass
+        elif select == "3":
+            while True:
+                os.system("CLS")
+                choice = int(input("Choose a generation type:\n0 \\ Back\n1 \\ \"DEC\" decimal\n2 \\ \"HEX\" hexadecimal\n>>> "))
+                if choice == 0: break
+                elif choice == 1: settings["genType"] = "DEC"
+                elif choice == 2: settings["genType"] = "HEX"
+                else: input("no lol\n")
+        elif select == "4":
+            while True:
+                os.system("CLS")
+                select = input("CHEATS\n\n0 \\ Back\n1 \\ Set Auto Smooth\n>>> ")
+                if select == "0": return
+                elif select == "1":
+                    while True:
+                        try:
+                            settings["cheatyShit"]['autoSmooth'] = int(input("Enter a number to set the auto smooth to.\n>>> "))
+                            settings["cheatyShit"]['autoSmooth'] = settings["cheatyShit"]['autoSmooth'] if settings["cheatyShit"]['autoSmooth'] > 0 else 1
+                            settings["cheatyShit"]['autoSmooth'] = settings["cheatyShit"]['autoSmooth'] if settings["cheatyShit"]['autoSmooth'] > settings["chunkSize"] else settings["chunkSize"]; break
+                        except: pass
 
-file = input("Choose an image to replicate.\n>>> ")
-base = Image.open(file + ".png")
-full = Image.new("RGB", (base.width, base.height), "white")
-full.save("{}.AI.png".format(file))
+def imageAI(settings):
+    gen = 1
+    file = input("Choose a .png image to replicate.\n>>> ")
+    try: base = Image.open(file+".png")
+    except: input("That image isn't real, stupid fuck.\n"); return
+    full = Image.new("RGB", (base.width, base.height), "white")
+    full.save("{}.AI.png".format(file))
 
-try: os.mkdir("temp")
-except: pass
-try: os.mkdir("chunks")
-except: pass
-for file1 in os.listdir("chunks"): os.remove("chunks/" + file1)
-for file1 in os.listdir("temp"): os.remove("temp/" + file1)
+    try: os.mkdir("temp")
+    except: pass
+    try: os.mkdir("chunks")
+    except: pass
+    for file1 in os.listdir("chunks"): os.remove("chunks/" + file1)
+    for file1 in os.listdir("temp"): os.remove("temp/" + file1)
 
-CSizeX = round(base.width/15)
-CSizeY = round(base.height/15)
-if CSizeX > 100: CSizeX = 100
-if CSizeY > 100: CSizeY = 100
-for y in range(CSizeY):
-    for x in range(CSizeX):
-        xx = math.floor(base.width/CSizeX)+(math.floor(base.width/CSizeX)*x) if x != CSizeX-1 else base.width
-        yy = math.floor(base.height/CSizeY)+(math.floor(base.height/CSizeY)*y) if y != CSizeY-1 else base.height
-        position = (math.floor(base.width/CSizeX)*x, math.floor(base.height/CSizeY)*y, xx, yy)
-        chunk = base.crop(position)
-        chunk.save("chunks/{}_{}.png".format(str(x), str(y)))
-        if x == 0 and y == 0: dimensions = (chunk.width, chunk.height)
+    CSizeX = round(base.width/settings['chunkSize'])
+    CSizeY = round(base.height/settings['chunkSize'])
+    for y in range(CSizeY):
+        for x in range(CSizeX):
+            xx = math.floor(base.width/CSizeX)+(math.floor(base.width/CSizeX)*x) if x != CSizeX-1 else base.width
+            yy = math.floor(base.height/CSizeY)+(math.floor(base.height/CSizeY)*y) if y != CSizeY-1 else base.height
+            position = (math.floor(base.width/CSizeX)*x, math.floor(base.height/CSizeY)*y, xx, yy)
+            chunk = base.crop(position)
+            chunk.save("chunks/{}_{}.png".format(str(x), str(y)))
+            if x == 0 and y == 0: dimensions = (chunk.width, chunk.height)
 
-async def test(i, base, Acolours, gen):
+    startTimeOverall = time.time()
+    asyncio.get_event_loop().run_until_complete(main(base, gen, full, file, dimensions, settings, CSizeX, CSizeY))
+
+    ms = int(round(time.time()-startTimeOverall, 2)*100)
+    seconds = 0; minutes = 0; hours = 0; days = 0
+    while ms >= 100: ms -= 100; seconds += 1
+    while seconds >= 60: seconds -= 60; minutes += 1
+    while minutes >= 60: minutes -= 60; hours += 1
+    while hours >= 24: hours -= 24; days += 1
+    input("\n\nFinished in {}d, {}h, {}:{}.{}\nPress enter to exit.\n".format(days, hours, minutes, seconds, ms))
+
+async def test(base, Acolours, gen, prevScore):
     global blocks
-    object = {"id": i}
+    object = {}
     score = 0
+
+    img = Image.open("temp/canvas.png")
 
     maxScale = base.width if base.width > base.height else base.height
     scaleX = random.randint(1, maxScale)
@@ -59,14 +103,13 @@ async def test(i, base, Acolours, gen):
     r = int(Acolours[rgb].split(".")[0])
     g = int(Acolours[rgb].split(".")[1])
     b = int(Acolours[rgb].split(".")[2])
-    a = random.randint(128-gen if gen > 127 else 0, 255)
+    a = random.randint(0, 255)
     rot = random.randint(0, 360)
 
-    img = Image.open("temp/canvas.png")
     rect = Image.new("RGBA", (scaleX, scaleY), (r, g, b, a)).rotate(rot, expand=True)
     Image.Image.paste(img, rect, (x, y), rect)
     while True:
-        try: img.save("temp/" + str(i) + ".png"); break
+        try: img.save("temp/temp.png"); break
         except: pass
 
     score = 0
@@ -85,8 +128,10 @@ async def test(i, base, Acolours, gen):
 
     return object
 
-async def main(base, iteration, gen, full, file, dimensions):
-    global CSizeX, CSizeY
+async def main(base, gen, full, file, dimensions, settings, CSizeX, CSizeY):
+    os.system("CLS")
+    avg = 0
+    avgcount= 0
     startTime = time.time()
     for cy in range(CSizeY):
         for cx in range(CSizeX):
@@ -99,16 +144,16 @@ async def main(base, iteration, gen, full, file, dimensions):
                     if str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]) in Acolours: pass
                     else: Acolours.append(str(BaseCol[0]) + "." + str(BaseCol[1]) + "." + str(BaseCol[2]))
             while True:
-                try: base.resize((1, 1)).resize((base.width, base.height)).save("temp/canvas.png"); break
+                try: base.resize((settings['cheatyShit']['autoSmooth'], settings['cheatyShit']['autoSmooth'])).resize((base.width, base.height), resample=Image.BICUBIC).save("temp/canvas.png"); break
                 except: pass
             prevScore = math.inf
             score = math.inf
-            goal = base.width*base.height*accuracy
+            goal = base.width*base.height*settings['accuracy']
+            
             while score > goal:
                 objects = []
 
-                for i in range(iteration):
-                    objects.append(await test(i, base, Acolours, gen))
+                objects.append(await test(base, Acolours, gen, prevScore))
 
                 sortObj = []
                 for y in range(len(objects)):
@@ -119,21 +164,39 @@ async def main(base, iteration, gen, full, file, dimensions):
                     sortObj.append(objects.pop(minimum))
                 objects = sortObj
 
-                comp = Image.open("temp/" + str(objects[0]['id']) + ".png")
+                comp = Image.open("temp/temp.png")
 
                 score = 0
+                count = 0
                 for y in range(base.height):
                     for x in range(base.width):
                         BaseCol = base.getpixel((x, y))
                         CompCol = comp.getpixel((x, y))
 
+                        count += 1
+
                         for col in range(3):
                             if BaseCol[col] - CompCol[col] < 0: score += -(BaseCol[col] - CompCol[col])
                             else: score += BaseCol[col] - CompCol[col]
 
-                print("GEN "+str(hex(gen))[2:]+" // SCORE: "+"-"*len(str(prevScore))+" // TIME: "+str(round(time.time()-startTime, 2))+"s   ", end="\r")
+                rg = [round(255-(255/(count*100)*score)), round(255/(count*100)*score)]
+                if rg[0] > 255: rg[0] = 255
+                if rg[0] < 0: rg[0] = 0
+                if rg[1] > 255: rg[1] = 255
+                if rg[1] < 0: rg[1] = 0
+
                 if score < prevScore:
-                    print("GEN "+str(hex(gen))[2:]+" // SCORE: "+str(score)+" // TIME: "+str(round(time.time()-startTime, 2))+"s   ")
+                    avg = ((avg*avgcount)+(time.time()-startTime))/(avgcount+1)
+                    avgcount += 1
+                    print( # Needs "/033A"s equivelent to 1 less than the number of lines printed
+                        "\033A\033A\033A\033A\033A"+
+                          "NAME  | "+file+
+                        "\nGEN   | "+str(hex(gen))[2:]+
+                        "\nSCORE | \033[48;2;"+str(rg[1])+";"+str(rg[0])+";0m"+str(score)+"\033[0m -> "+str(goal)+"    "+
+                        "\nCHUNK | "+str(cx+1)+", "+str(cy+1)+
+                        "\nTIME  | "+str(round(time.time()-startTime, 5))+"s    "+
+                        "\nAVG   | "+str(round(avg, 5))+"s    "
+                        , end="\r")
                     position = (math.floor(dimensions[0])*cx, math.floor(dimensions[1])*cy)
                     full.paste(comp, position)
                     while True:
@@ -156,13 +219,4 @@ async def main(base, iteration, gen, full, file, dimensions):
     for file1 in os.listdir("temp"): os.remove("temp/" + file1)
     for file1 in os.listdir("chunks"): os.remove("chunks/" + file1)
 
-startTimeOverall = time.time()
-asyncio.get_event_loop().run_until_complete(main(base, iteration, gen, full, file, dimensions))
-
-ms = int(round(time.time()-startTimeOverall, 2)*100)
-seconds = 0; minutes = 0; hours = 0; days = 0
-while ms >= 100: ms -= 100; seconds += 1
-while seconds >= 60: seconds -= 60; minutes += 1
-while minutes >= 60: minutes -= 60; hours += 1
-while hours >= 24: hours -= 24; days += 1
-input("Finished in {}d {}h {}m {}s {}ms\nPress enter to exit.\n".format(days, hours, minutes, seconds, ms))
+menu()
