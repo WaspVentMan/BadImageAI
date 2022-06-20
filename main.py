@@ -191,7 +191,7 @@ async def main(base, gen, full, file, dimensions, settings, CSizeX, CSizeY):
                     print( # Needs "/033A"s equivelent to 1 less than the number of lines printed
                         "\033A\033A\033A\033A\033A"+
                           "NAME  | "+file+
-                        "\nGEN   | "+str(hex(gen))[2:]+
+                        "\nGEN   | "+(str(hex(gen))[2:] if settings['genType'] == "HEX" else str(gen))+
                         "\nSCORE | \033[48;2;"+str(rg[1])+";"+str(rg[0])+";0m"+str(score)+"\033[0m -> "+str(goal)+"    "+
                         "\nCHUNK | "+str(cx+1)+", "+str(cy+1)+
                         "\nTIME  | "+str(round(time.time()-startTime, 5))+"s    "+
